@@ -7,10 +7,10 @@ import (
 
 	"golang.org/x/exp/slices"
 
-	c "github.com/gjbranham/Text-Finder/internal/concurrency"
+	"github.com/gjbranham/Text-Finder/internal/concurrency"
 )
 
-func PrintResults(start time.Time, searchTerms []string, matchInfo *c.MatchInformation) {
+func PrintResults(start time.Time, searchTerms []string, matchInfo *concurrency.MatchInfo) {
 	// copy matchInfo then sort it for nice looking output
 	matchInfoCopy := copyMatchInfo(matchInfo)
 	sortMatchInfoByKeyThenFile(matchInfoCopy)
@@ -20,14 +20,14 @@ func PrintResults(start time.Time, searchTerms []string, matchInfo *c.MatchInfor
 	Print(fmt.Sprintf("Found %v matches in %v files in %v", matchInfoCopy.Count, matchCount, time.Since(start)))
 }
 
-func copyMatchInfo(matchInfo *c.MatchInformation) *c.MatchInformation {
-	var matchInfoCopy c.MatchInformation
+func copyMatchInfo(matchInfo *concurrency.MatchInfo) *concurrency.MatchInfo {
+	var matchInfoCopy concurrency.MatchInfo
 	matchInfoCopy.Count = matchInfo.Count
 	matchInfoCopy.Matches = matchInfo.Matches
 	return &matchInfoCopy
 }
 
-func sortMatchInfoByKeyThenFile(matchInfo *c.MatchInformation) {
+func sortMatchInfoByKeyThenFile(matchInfo *concurrency.MatchInfo) {
 	sort.Slice(matchInfo.Matches, func(i, j int) bool {
 		if matchInfo.Matches[i].Key == matchInfo.Matches[j].Key {
 			return matchInfo.Matches[i].File < matchInfo.Matches[j].File
@@ -36,7 +36,7 @@ func sortMatchInfoByKeyThenFile(matchInfo *c.MatchInformation) {
 	})
 }
 
-func printAndCountMatches(matchInfo *c.MatchInformation, searchTerms []string) int {
+func printAndCountMatches(matchInfo *concurrency.MatchInfo, searchTerms []string) int {
 	padding := calcPadding(searchTerms)
 	uniqFiles := make([]string, 0)
 	customFmt := fmt.Sprintf("%%-%ds: %%s line %%v", padding)

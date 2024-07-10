@@ -27,6 +27,5 @@ func ProcessArgs(exeName string, sysArgs []string) (*Arguments, string, error) {
 	}
 
 	args.SearchTerms = flags.Args()
-
 	return &args, buf.String(), nil
 }

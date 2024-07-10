@@ -1,25 +1,27 @@
 package concurrency
 
-import "sync"
+import (
+	"sync"
+)
 
 type FileInfo struct {
 	Key, File string
 	LineNum   int
 }
 
-type MatchInformation struct {
+type MatchInfo struct {
 	mu      sync.Mutex
 	Count   int
 	Matches []FileInfo
 }
 
-func (c *MatchInformation) CounterInc(count int) {
+func (c *MatchInfo) CounterInc(count int) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.Count = c.Count + count
 }
 
-func (c *MatchInformation) AddMatch(info ...FileInfo) {
+func (c *MatchInfo) AddMatch(info ...FileInfo) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.Matches = append(c.Matches, info...)
