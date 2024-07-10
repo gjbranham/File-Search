@@ -12,13 +12,10 @@ import (
 	"testing"
 
 	"github.com/gjbranham/Text-Finder/internal/args"
-	c "github.com/gjbranham/Text-Finder/internal/concurrency"
+	"github.com/gjbranham/Text-Finder/internal/concurrency"
+
 	o "github.com/gjbranham/Text-Finder/internal/output"
 )
-
-/***
-- Need to add a test to verify multiple search terms from a file
-***/
 
 var testDir = "/tmp/text-finder"
 var buf *bytes.Buffer = new(bytes.Buffer)
@@ -39,16 +36,16 @@ func TestSimpleCmdLineArguments(t *testing.T) {
 	type test struct {
 		args              []string
 		fileContent       string
-		expectedMatchInfo c.MatchInformation
+		expectedMatchInfo *concurrency.MatchInfo
 	}
 
 	tests := []test{
 		{
 			args:        []string{"myapp", "-d", testDir, "foo"},
 			fileContent: "foo",
-			expectedMatchInfo: c.MatchInformation{
+			expectedMatchInfo: &concurrency.MatchInfo{
 				Count: 1,
-				Matches: []c.FileInfo{
+				Matches: []concurrency.FileInfo{
 					{Key: "foo", File: path.Join(testDir, "simpleSearch"), LineNum: 1},
 				},
 			},
@@ -56,9 +53,9 @@ func TestSimpleCmdLineArguments(t *testing.T) {
 		{
 			args:        []string{"myapp", "-i", "-d", testDir, "Foo"},
 			fileContent: "foo",
-			expectedMatchInfo: c.MatchInformation{
+			expectedMatchInfo: &concurrency.MatchInfo{
 				Count: 1,
-				Matches: []c.FileInfo{
+				Matches: []concurrency.FileInfo{
 					{Key: "Foo", File: path.Join(testDir, "caseInsensitiveSearch"), LineNum: 1},
 				},
 			},
@@ -66,9 +63,9 @@ func TestSimpleCmdLineArguments(t *testing.T) {
 		{
 			args:        []string{"myapp", "-i", "-d", "", "foo"},
 			fileContent: "foo",
-			expectedMatchInfo: c.MatchInformation{
+			expectedMatchInfo: &concurrency.MatchInfo{
 				Count: 1,
-				Matches: []c.FileInfo{
+				Matches: []concurrency.FileInfo{
 					{Key: "foo", File: path.Join(testDir, "emptyRootDir"), LineNum: 1},
 				},
 			},
@@ -76,9 +73,9 @@ func TestSimpleCmdLineArguments(t *testing.T) {
 		{
 			args:        []string{"myapp", "-r", "-d", testDir, "foo"},
 			fileContent: "foo",
-			expectedMatchInfo: c.MatchInformation{
+			expectedMatchInfo: &concurrency.MatchInfo{
 				Count: 1,
-				Matches: []c.FileInfo{
+				Matches: []concurrency.FileInfo{
 					{Key: "foo", File: path.Join(testDir, "recursiveDir/recursiveSearch"), LineNum: 1},
 				},
 			},
@@ -87,26 +84,26 @@ func TestSimpleCmdLineArguments(t *testing.T) {
 			// no search terms
 			args:        []string{"myapp", "-d", testDir},
 			fileContent: "",
-			expectedMatchInfo: c.MatchInformation{
+			expectedMatchInfo: &concurrency.MatchInfo{
 				Count:   0,
-				Matches: []c.FileInfo{},
+				Matches: []concurrency.FileInfo{},
 			},
 		},
 		{
 			// binary file
 			args:        []string{"myapp", "-d", testDir},
 			fileContent: "foo" + string([]byte{0}),
-			expectedMatchInfo: c.MatchInformation{
+			expectedMatchInfo: &concurrency.MatchInfo{
 				Count:   0,
-				Matches: []c.FileInfo{},
+				Matches: []concurrency.FileInfo{},
 			},
 		},
 		{
 			args:        []string{"myapp", "-d", testDir, "foo"},
 			fileContent: "foo",
-			expectedMatchInfo: c.MatchInformation{
+			expectedMatchInfo: &concurrency.MatchInfo{
 				Count: 2,
-				Matches: []c.FileInfo{
+				Matches: []concurrency.FileInfo{
 					{Key: "foo", File: path.Join(testDir, "firstMatchingFile"), LineNum: 1},
 					{Key: "foo", File: path.Join(testDir, "secondMatchingFile"), LineNum: 1},
 				},
@@ -115,9 +112,9 @@ func TestSimpleCmdLineArguments(t *testing.T) {
 		{
 			args:        []string{"myapp", "-d", testDir, "foo"},
 			fileContent: "foo\n",
-			expectedMatchInfo: c.MatchInformation{
+			expectedMatchInfo: &concurrency.MatchInfo{
 				Count: 2,
-				Matches: []c.FileInfo{
+				Matches: []concurrency.FileInfo{
 					{Key: "foo", File: path.Join(testDir, "multiLineMatches"), LineNum: 1},
 					{Key: "foo", File: path.Join(testDir, "multiLineMatches"), LineNum: 2},
 				},
@@ -132,10 +129,10 @@ func TestSimpleCmdLineArguments(t *testing.T) {
 			}
 			os.Args = tt.args
 			args, _, _ := args.ProcessArgs(os.Args[0], os.Args[1:])
-			app := TextFinder{Args: args, MatchInfo: new(c.MatchInformation)}
+			app := TextFinder{Args: args, MatchInfo: new(concurrency.MatchInfo)}
 			app.FindFiles(testDir)
 
-			if err := checkMatch(tt.expectedMatchInfo, *app.MatchInfo); err != nil {
+			if err := checkMatch(tt.expectedMatchInfo, app.MatchInfo); err != nil {
 				t.Errorf("Test failed: %v", err)
 			}
 			for _, m := range tt.expectedMatchInfo.Matches {
@@ -145,16 +142,22 @@ func TestSimpleCmdLineArguments(t *testing.T) {
 	}
 }
 
-func checkMatch(expected, actual c.MatchInformation) error {
+func checkMatch(expected, actual *concurrency.MatchInfo) error {
 	if expected.Count != actual.Count {
 		return errors.New("matching file count did not match")
 	}
 	if len(expected.Matches) == 0 && len(actual.Matches) == 0 { // for searches that return no results
 		return nil
 	}
+
+	count := 0
+	expectedCount := len(expected.Matches)
 	for _, a := range actual.Matches {
 		for _, e := range expected.Matches {
 			if reflect.DeepEqual(a, e) {
+				count++
+			}
+			if count == expectedCount {
 				return nil
 			}
 		}

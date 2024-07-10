@@ -5,8 +5,5 @@ makefile_directory_path := $(realpath $(dir $(realpath $(lastword $(MAKEFILE_LIS
 build:
 	cd $(makefile_directory_path)/cmd/text-finder && go build -o $(makefile_directory_path)/bin/text-finder
 
-clean:
-	rm -rf $(makefile_directory_path)/bin/text-finder
-
 test:
-	go test -v ./...
+	go test -v ./... -coverprofile=.cover.out && go tool cover -func=.cover.out
